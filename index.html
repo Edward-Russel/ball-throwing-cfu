@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+  <title></title>
+  <script src="pixi.js"></script>
+  <style>
+    .flex-center-div {
+      display: flex;
+      justify-content: center;
+    }
+    .phys-data-field {
+      display: flex;
+      justify-content: space-between;
+    }
+    .phys-data-input {
+      width: 150px;
+      text-align: right;
+    }
+    .under-input-button {
+      margin-top: 5px;
+      width: 100%;
+    }
+    body {
+      margin: 0px;
+    }
+    input {
+      width: 50px;
+    }
+  </style>
+  <!--
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+  -->
+</head>
+<body>
+  <div>
+    <div id="buttons"></div>
+    <main class="flex-center-div">
+      <div>
+        <div id="inputs">
+          <div class="phys-data-field">
+            <div>координаты</div>
+            <div class="phys-data-input">(<input id="input-x" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('x')">, <input id="input-y" type="number" step="0.1" value="0" onchange="app.applyUpdatedInputValue('y')">)</div>
+          </div>
+          <div class="phys-data-field">
+            <div>скорость</div>
+            <div class="phys-data-input"><input id="input-v" value="12" type="number" step="0.1" onchange="app.applyUpdatedInputValue('v')"></div>
+          </div>
+          <div class="phys-data-field">
+            <div>угол броска (в градусах)</div>
+            <div class="phys-data-input"><input id="input-throwing-angle" value="45" type="number" onchange="app.applyUpdatedInputValue('throwing-angle')"></div>
+          </div>
+          <div class="phys-data-field">
+            <div>ветер</div>
+            <div class="phys-data-input"><input id="input-wind" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('wind')"></div>
+          </div>
+          <button class="under-input-button" onclick="defaultValues()">Сбросить значения</button>
+          <button id="start-button" class="under-input-button" onclick="start()">Старт</button>
+          <button id="stop-button" style="display: none" class="under-input-button" onclick="stop()">Стоп</button>
+        </div>
+        <div id="sub-view"></div>
+      </div>
+      <div id="main-view"></div>
+    </div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
