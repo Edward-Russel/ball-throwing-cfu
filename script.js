@@ -348,7 +348,7 @@ const app = ((exports) => {
   };
   const mainWidth = document.getElementsByTagName('main')[0].clientWidth;
   const canvas = new PIXI.Application({
-    width: Math.floor(mainWidth * (mainWidth <= 800 ? 0.9 : 0.4)),
+    width: Math.floor(mainWidth * (mainWidth <= 800 ? 0.8 : 0.4)),
     height: 0,
     backgroundColor: canvasBackground,
     //NOTE: antialias добавляет сглаживание
