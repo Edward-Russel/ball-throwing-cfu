@@ -1,67 +1,99 @@
 <!doctype html>
 <html>
 <head>
-  <title></title>
+  <title>Бросание тела в вязкой среде</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="pixi.js"></script>
   <style>
-    .flex-center-div {
+    .flexly-centered-x-y {
       display: flex;
       justify-content: center;
+      align-items: center;
+    }
+    .flexly-centered-x-y > div {
+      margin-left: 1em;
+      margin-right: 1em;
     }
     .phys-data-field {
       display: flex;
       justify-content: space-between;
+      margin: 1em;
+      background: buttonface;
+      border: 1px solid #8f8f9d;
+      border-radius: 3px;
+    }
+    .phys-data-field > div {
+      margin: 0.5em;
     }
     .phys-data-input {
-      width: 150px;
+      width: 10em;
       text-align: right;
     }
     .under-input-button {
-      margin-top: 5px;
+      margin-top: 0.5em;
       width: 100%;
     }
     body {
       margin: 0px;
     }
     input {
-      width: 50px;
+      width: 4em;
+    }
+    #canvas {
+      height: 100vh;
+      overflow: scroll;
+    }
+    @media screen and (max-width: 800px){
+        .flexly-centered-x-y {
+            flex-direction: column;
+        }
+        #canvas {
+          margin-top: 1em;
+          height: 60vh;
+        }
     }
   </style>
-  <!--
-  <link rel="stylesheet" href="css/styles.css?v=1.0">
-  -->
 </head>
 <body>
   <div>
     <div id="buttons"></div>
-    <main class="flex-center-div">
-      <div>
-        <div id="inputs">
-          <div class="phys-data-field">
-            <div>координаты</div>
-            <div class="phys-data-input">(<input id="input-x" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('x')">, <input id="input-y" type="number" step="0.1" value="0" onchange="app.applyUpdatedInputValue('y')">)</div>
-          </div>
-          <div class="phys-data-field">
-            <div>скорость</div>
-            <div class="phys-data-input"><input id="input-v" value="12" type="number" step="0.1" onchange="app.applyUpdatedInputValue('v')"></div>
-          </div>
-          <div class="phys-data-field">
-            <div>угол броска (в градусах)</div>
-            <div class="phys-data-input"><input id="input-throwing-angle" value="45" type="number" onchange="app.applyUpdatedInputValue('throwing-angle')"></div>
-          </div>
-          <div class="phys-data-field">
-            <div>ветер</div>
-            <div class="phys-data-input"><input id="input-wind" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('wind')"></div>
-          </div>
-          <button class="under-input-button" onclick="defaultValues()">Сбросить значения</button>
-          <button id="start-button" class="under-input-button" onclick="start()">Старт</button>
-          <button id="stop-button" style="display: none" class="under-input-button" onclick="stop()">Стоп</button>
+    <main class="flexly-centered-x-y">
+      <div id="inputs">
+        <div class="phys-data-field">
+          <div>координаты</div>
+          <div class="phys-data-input">(<input id="input-x" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('x')" autocomplete="off">, <input id="input-y" type="number" step="0.1" value="0" onchange="app.applyUpdatedInputValue('y')" autocomplete="off">)</div>
         </div>
-        <div id="sub-view"></div>
+        <div class="phys-data-field">
+          <div>начальная скорость</div>
+          <div class="phys-data-input"><input id="input-v" value="750" type="number" step="0.1" onchange="app.applyUpdatedInputValue('v')" autocomplete="off"></div>
+        </div>
+        <div class="phys-data-field">
+          <div>максимальная скорость</div>
+          <div class="phys-data-input"><input id="input-vmax" value="150" type="number" step="0.1" onchange="app.applyUpdatedInputValue('vmax')" autocomplete="off"></div>
+        </div>
+        <div class="phys-data-field">
+          <div>угол броска (в градусах)</div>
+          <div class="phys-data-input"><input id="input-throwing-angle" value="45" type="number" onchange="app.applyUpdatedInputValue('throwing-angle')" autocomplete="off"></div>
+        </div>
+        <div class="phys-data-field">
+          <div>ветер</div>
+          <div class="phys-data-input"><input id="input-wind" value="0" type="number" step="0.1" onchange="app.applyUpdatedInputValue('wind')" autocomplete="off"></div>
+        </div>
+        <div class="phys-data-field">
+          <div>множитель Δt</div>
+          <div class="phys-data-input">
+            <input style="width: 2em" id="input-pixi-ticker-speed" readonly autocomplete="off" value="1">
+            <button style="width: 2em" onclick="app.pixiTickerSpeed(1)">+</button>
+            <button style="width: 2em" onclick="app.pixiTickerSpeed(-1)">-</button>
+          </div>
+        </div>
+        <button class="under-input-button" onclick="app.defaultValues()">Сбросить значения</button>
+        <button id="start-button" class="under-input-button" onclick="app.start()">Старт</button>
+        <button id="stop-button" style="display: none" class="under-input-button" onclick="app.stop()">Стоп</button>
       </div>
-      <div id="main-view"></div>
-    </div>
+      <div id="canvas"></div>
   </main>
+  <script src="vector.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

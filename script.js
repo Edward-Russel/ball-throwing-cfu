@@ -1,107 +1,30 @@
-'use strict';
+'use strict'
 
 const Uncertainty = 1e-8;
-
-class App {
-  constructor() {
-    this.scale = 100; //100 px == 1 m
-    this.stoped = false;
-
-    this.canvasBackground = 0xF0F0F0;
-
-    this.inputs = {
-      x: document.getElementById('input-x'),
-      y: document.getElementById('input-y'),
-      v: document.getElementById('input-v'),
-      wind: document.getElementById('input-wind'),
-      throwingAngle: document.getElementById('input-throwing-angle')
-    }
-    this.main = document.getElementsByTagName('main')[0];
-  }
-  addView() {
-    const subViewHTML = document.getElementById('sub-view');
-    const mainViewHTML = document.getElementById('main-view');
-    const mainView = new PIXI.Application({
-      width: Math.floor(this.main.clientWidth * 0.4),
-      height: this.main.clientHeight,
-      backgroundColor: this.canvasBackground,
-      //antialias: true
-    });
-    const subView = new PIXI.Application({
-      width: subViewHTML.clientWidth,
-      height: 0,
-      backgroundColor: this.canvasBackground,
-      //antialias: true
-    });
-    this.mainView = mainView;
-    this.subView = subView;
-    Graph.width = subView.screen.width - 2 * Graph.margin;
-    Graph.height = Math.floor(Graph.width / 16 * 9);
-    mainViewHTML.appendChild(mainView.view);
-    subViewHTML.appendChild(subView.view);
-  }
-  getInputValue(inputType) {
-    switch (inputType) {
-      case 'x': return this.inputs.x.valueAsNumber;
-      case 'y': return this.inputs.y.valueAsNumber;
-      case 'v': return this.inputs.v.valueAsNumber;
-      case 'wind': return this.inputs.wind.valueAsNumber;
-      case 'throwing-angle': return this.inputs.throwingAngle.valueAsNumber;
-    }
-  }
-  setInputValue(inputType, value) {
-    switch (inputType) {
-      case 'x': this.inputs.x.valueAsNumber = value; break;
-      case 'y': this.inputs.y.valueAsNumber = value; break;
-      case 'v': this.inputs.v.valueAsNumber = value; break;
-      case 'wind': this.inputs.wind.valueAsNumber = value; break;
-      case 'throwing-angle': this.inputs.throwingAngle.valueAsNumber = value; break;
-    }
-  }
-  applyUpdatedInputValue(inputType) {
-    switch (inputType) {
-      case 'x': p.x = this.inputs.x.valueAsNumber; break;
-      case 'y': p.y = this.inputs.y.valueAsNumber; break;
-      case 'v': p.v = this.inputs.v.valueAsNumber; break;
-      case 'wind': p.wind.x = this.inputs.wind.valueAsNumber; break;
-      case 'throwing-angle': p.degreeThrowingAngle = this.inputs.throwingAngle.valueAsNumber; break;
-    }
-  }
-  start() {
-    this.stoped = false;
-    this.mainView.ticker.start();
-    this.subView.ticker.start();
-  }
-  stop() {
-    this.stoped = true;
-    this.mainView.ticker.stop();
-    this.subView.ticker.stop();
-  }
+function compareWithNull(number) {
+  return -Uncertainty <= number && number <= Uncertainty;
 }
 
 class Graph {
   static count = 0;
-  static margin = 40;
-  static interval = 1;
+  static margin = 50;
+  static interval = 40;
   static list = [];
   static resize() {
-    app.subView.renderer.resize(
-      app.subView.screen.width,
-      Graph.count * Graph.height + 2 * (Graph.count - 1) * Graph.margin
+    app.canvas.renderer.resize(
+      app.canvas.screen.width,
+      Graph.count * Graph.height + Graph.count * 2 * Graph.margin
     );
-    app.mainView.renderer.resize(
-      app.mainView.screen.width,
-      app.main.clientHeight - 4
-    )
   };
   constructor(xAlias = 'x', yAlias = 'y') {
     this.count = ++Graph.count;
     Graph.list.push(this);
     Graph.resize();
+
     this.container = new PIXI.Container();
     this.container.x += Graph.margin;
-    this.container.y += this.count * Graph.height + this.count * Graph.margin;
-    app.subView.stage.addChild(this.container);
+    this.container.y += this.count * Graph.height + 2 * this.count * Graph.margin - Graph.margin;
+    app.canvas.stage.addChild(this.container);
     this.x0 = 0;
     this.y0 = 0;
     this.x = Graph.width;
@@ -126,6 +49,7 @@ class Graph {
     const xLine = new PIXI.Graphics();
     const xText = new PIXI.Text(xAlias, textStyle);
     xLine.lineStyle({ width: 1 });
+    xLine.moveTo(this.x0, this.y0);
     xLine.lineTo(this.x + Graph.margin / 2, this.y0);
     xLine.lineTo(this.x + Graph.margin / 2 - arrow, this.y0 - arrow);
     xLine.moveTo(this.x + Graph.margin / 2, this.y0);
@@ -149,6 +73,7 @@ class Graph {
     const yLine = new PIXI.Graphics();
     const yText = new PIXI.Text(yAlias, textStyle);
     yLine.lineStyle({ width: 1 });
+    yLine.moveTo(this.x0, this.y0);
     yLine.lineTo(this.x0, this.y - Graph.margin / 2);
     yLine.lineTo(this.x0 - arrow, this.y - Graph.margin / 2 + arrow);
     yLine.moveTo(this.x0, this.y - Graph.margin / 2);
@@ -236,8 +161,8 @@ class Graph {
     else if (y > context.yMaxValue) context.yMaxValue = y;
   }
   shiftProject() {
-    //сохранить прошлые минмакс значения, потом плавно от них к новым
-    //минмаксам маштабировать график, параллельно удаля точки
+    //TODO:
+    //добавить плавное удаление графика
     this.projects.shift();
     this.xMinValue = Uncertainty;
     this.xMaxValue = Uncertainty;
@@ -253,7 +178,7 @@ class Graph {
     this.draw();
   }
   add(x, y) {
-    if (app.stoped) return;
+    if (app.stopped) return;
     const project = this.activeProject;
 
     this.computeMinMax(project, x, y);
@@ -299,65 +224,14 @@ class Graph {
   }
 }
 
-class Vector {
-  constructor(x = 0, y = 0) {
+class Physics {
+  constructor(x, y, args) {
     this.x = x;
     this.y = y;
-  }
-  static expression(a, operator, b) {
-    switch (operator) {
-      case '+': return new Vector(a.x + b.x, a.y + b.y);
-      case '-': return new Vector(a.x - b.x, a.y - b.y);
-      case '*': {
-        //скалярное умножение векторов
-        if (isNaN(b)) return a.x * b.x + a.y * b.y;
-        //умножение на скаляр, возвращение нового вектора
-        return new Vector(a.x * b, a.y * b);
-      }
-      //изменить направление вектора, возвращение нового вектора
-      case '!': return new Vector(-a.x, -a.y);
-    }
-  }
-  //умножение на скаляр, изменение текущего вектора
-  scalar(scalar) {
-    this.x *= scalar;
-    this.y *= scalar;
-    return this;
-  }
-  //изменить направление текущего вектора
-  reverse() {
-    this.x = -this.x;
-    this.y = -this.y;
-    return this;
-  }
-  //модуль текущего вектора
-  get modul() {
-    return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
-  }
-}
-
-class Point {
-  constructor() {
-    this.container = new PIXI.Graphics();
-    this.x = app.getInputValue('x');
-    this.y = app.getInputValue('y');
-    this.degreeThrowingAngle = app.getInputValue('throwing-angle');
-    this.v = app.getInputValue('v');
-    this.wind = app.getInputValue('wind');
-    this.r = 0.05;
-    this.aerodynamics = 0.3;
-    this.s = Math.PI * Math.pow(2 * this.r, 2) / 4;
+    this.v = [args.velocityModul, args.radianThrowingAngle]
+    this.vmax = args.vmax;
+    this.wind = args.wind;
     this.t = 0;
-
-    this.container.lineStyle({ width: 0 });
-    this.container.beginFill(0xDE3249, 1);
-    this.container.drawCircle(
-      this.r * app.scale,
-      app.mainView.screen.height - this.r * app.scale,
-      this.r * app.scale
-    );
-    this.container.endFill();
-    app.mainView.stage.addChild(this.container);
 
     this.listeners = {
         stop: new Set()
@@ -365,7 +239,6 @@ class Point {
   }
   set x(value) {
     this._x = value;
-    this.container.position.x = Math.round(value * app.scale);
     app.setInputValue('x', +value.toFixed(1));
   }
   get x() {
@@ -373,28 +246,25 @@ class Point {
   }
   set y(value) {
     this._y = value;
-    this.container.position.y = -Math.round(value * app.scale);
     app.setInputValue('y', +value.toFixed(1));
   }
   get y() {
     return this._y;
   }
-  set degreeThrowingAngle(value) {
-    this._degreeThrowingAngle = value;
-    if (this.v !== undefined) app.applyUpdatedInputValue('v'); //скорость изменяется при изменении угла
-    app.setInputValue('throwing-angle', Math.floor(value));
-  }
-  get degreeThrowingAngle() {
-    return this._degreeThrowingAngle;
-  }
-  set v(value) {
-    if (isNaN(value)) {
-      this._v = value;
-    } else {
-      const radian = this.degreeThrowingAngle * Math.PI / 180;
-      this._v = new Vector(Math.cos(radian) * value, Math.sin(radian) * value);
-    }
-    app.setInputValue('v', +((value < 0 ? -1 : 1) * this.v.modul).toFixed(2));
+  // set degreeThrowingAngle(value) {
+  //   this._degreeThrowingAngle = value;
+  //   if (this.v !== undefined) app.applyUpdatedInputValue('v'); //скорость изменяется при изменении угла
+  //   app.setInputValue('throwing-angle', Math.floor(value));
+  // }
+  // get degreeThrowingAngle() {
+  //   return this._degreeThrowingAngle;
+  // }
+  set v([modul, angle]) {
+    //const radian = this.degreeThrowingAngle * Math.PI / 180;
+    if (compareWithNull(modul))
+      this._v = new Vector(Math.cos(angle), Math.sin(angle));
+    else
+      this._v = new Vector(Math.cos(angle) * modul, Math.sin(angle) * modul);
   }
   get v() {
     return this._v;
@@ -406,65 +276,56 @@ class Point {
     return this._wind;
   }
   a() {
+    //g - e^()-h / 10000) * g.modul * (v - wind) * (v - wind).modul
+    const relativeVelocity = Vector.expression(this.v, '-', this.wind);
     return Vector.expression(
       g,
       '-',
-      Vector.expression(this.v, '-', this.wind).scalar(
-        + Vector.expression(this.v, '-', this.wind).modul
-        * Math.exp(-this.y / 10000)
-        * this.aerodynamics
+      relativeVelocity.scalar(
+        + Math.exp(-this.y / 10000)
+        * relativeVelocity.modul
         * g.modul
-        * this.s
+      ).scalar(
+        1 / Math.pow(this.vmax, 2)
       )
     );
   }
   start() {
     if (this.moving) return;
+
     this.drawingGraph = setInterval(() => {
       shGraph.add(this.x, this.y);
-      tvyGraph.add(this.t, this.v.y);
+      vtGraph.add(this.t, this.v.modul);
       tvxGraph.add(this.t, this.v.x);
-    }, 50 * Graph.interval);
+      tvyGraph.add(this.t, this.v.y);
+    }, Graph.interval);
+
     this.moving = (delta) => {
+      //NOTE:
+      //delta является отношением количества отрисованных кадров
+      //за секунду времени (в данной программе - не более 60 FPS)
+      //т.е. если за секунду времени отрисовано 60 кадров, delta = 1,
+      //а если меньше 60 кадров, то delta < 1
       delta /= 60;
-      const a = this.a().scalar(delta);
-      this.v = Vector.expression(this.v, '+', a);
+      this.t += delta;
       this.x += this.v.x * delta;
       this.y += this.v.y * delta;
-      this.t += delta;
-      this.collision();
-      if (this.v.modul === 0) this.stop();
+      const a = this.a().scalar(delta);
+      this._v = Vector.expression(this.v, '+', a);
+      if (this.y <= 0) this.stop();
     };
-    app.mainView.ticker.add(this.moving);
+
+    app.canvas.ticker.add(this.moving);
   }
   stop() {
-    app.mainView.ticker.remove(this.moving);
+    this.t = 0;
+    app.canvas.ticker.remove(this.moving);
     delete this.moving;
     clearInterval(this.drawingGraph);
     delete this.drawingGraph;
-    this.fire('stop');
+    this.emit('stop');
   }
-  collision() {
-    const maxX = app.mainView.screen.width / app.scale - this.r;
-    let collision = false;
-    if (this.x <= 0) {
-      this.x = 0;
-      this.v.reverse();
-      collision = true;
-    } else if (this.x >= maxX) {
-      this.x = maxX;
-      this.v.reverse();
-      collision = true;
-    }
-    if (this.y <= 0) {
-      this.y = 0;
-      this.degreeThrowingAngle = Math.acos(this.v.x / this.v.modul) * 180 / Math.PI;
-      this.v = Math.floor(this.v.modul / 1.2);
-      collision = true;
-    }
-    return collision;
-  }
-  fire(type) {
+  emit(type) {
     this.listeners[type].forEach(fn => fn());
     this.listeners[type].clear();
   }
@@ -473,52 +334,140 @@ class Point {
   }
 }
 
-const app = new App();
+const app = ((exports) => {
+  let stopped = false;
+  let link = null;
+  const canvasBackground = 0xF0F0F0;
+  const inputs = {
+    x: document.getElementById('input-x'),
+    y: document.getElementById('input-y'),
+    v: document.getElementById('input-v'),
+    wind: document.getElementById('input-wind'),
+    throwingAngle: document.getElementById('input-throwing-angle'),
+    vmax: document.getElementById('input-vmax')
+  };
+  const mainWidth = document.getElementsByTagName('main')[0].clientWidth;
+  const canvas = new PIXI.Application({
+    width: Math.floor(mainWidth * (mainWidth <= 800 ? 0.9 : 0.4)),
+    height: 0,
+    backgroundColor: canvasBackground,
+    //NOTE: antialias добавляет сглаживание
+    //antialias: true
+  });
+  Graph.width = canvas.screen.width - 2 * Graph.margin;
+  Graph.height = Math.floor(Graph.width / 16 * 9);
+  document.getElementById('canvas').appendChild(canvas.view);
 
-app.addView();
+  function getInputValue(inputType) {
+    switch (inputType) {
+      case 'x': return inputs.x.valueAsNumber;
+      case 'y': return inputs.y.valueAsNumber;
+      case 'v': return inputs.v.valueAsNumber;
+      case 'wind': return inputs.wind.valueAsNumber;
+      case 'throwing-angle': return inputs.throwingAngle.valueAsNumber;
+      case 'vmax': return inputs.vmax.valueAsNumber;
+    }
+  }
+
+  function setInputValue(inputType, value) {
+    switch (inputType) {
+      case 'x': inputs.x.valueAsNumber = value; break;
+      case 'y': inputs.y.valueAsNumber = value; break;
+      case 'v': inputs.v.valueAsNumber = value; break;
+      case 'wind': inputs.wind.valueAsNumber = value; break;
+      case 'throwing-angle': inputs.throwingAngle.valueAsNumber = value; break;
+      case 'vmax': inputs.vmax.valueAsNumber = value; break;
+    }
+  }
+
+  function applyUpdatedInputValue(inputType) {
+    if (link === null) return;
+    switch (inputType) {
+      case 'x': link.x = getInputValue(inputType); break;
+      case 'y': link.y = getInputValue(inputType); break;
+      case 'v': link.v = [
+        getInputValue(inputType),
+        getInputValue('throwing-angle') * Math.PI / 180
+      ]; break;
+      case 'wind': link.wind.x = getInputValue(inputType); break;
+      case 'throwing-angle': link.v = [
+        getInputValue('v'),
+        getInputValue(inputType) * Math.PI / 180
+      ]; break;
+      case 'vmax': link.vmax = getInputValue(inputType);
+    }
+  }
+
+  function linkTo(physics) {
+    link = physics;
+  }
+
+  function start() {
+    const startButton = document.getElementById('start-button');
+    const stopButton = document.getElementById('stop-button');
+    startButton.style.display = 'none';
+    stopButton.style.display = 'inline-block';
+    stopped = false;
+    canvas.ticker.start();
+    if (!link.moving) {
+      Graph.list.forEach(graph => graph.startProject());
+      link.on('stop', () => {
+        Graph.list.forEach(graph => graph.endProject());
+        startButton.style.display = 'inline-block';
+        stopButton.style.display = 'none';
+      });
+      link.start();
+    }
+  }
+
+  function stop() {
+    document.getElementById('start-button').style.display = 'inline-block';
+    document.getElementById('stop-button').style.display = 'none';
+    stopped = true;
+    canvas.ticker.stop();
+  }
+
+  function defaultValues() {
+    setInputValue('x', 0); applyUpdatedInputValue('x');
+    setInputValue('y', 0); applyUpdatedInputValue('y');
+    setInputValue('v', 750); applyUpdatedInputValue('v');
+    setInputValue('throwing-angle', 45); applyUpdatedInputValue('throwing-angle');
+    setInputValue('wind', 0); applyUpdatedInputValue('wind');
+    setInputValue('vmax', 150); applyUpdatedInputValue('vmax');
+  }
+
+  function pixiTickerSpeed(to) {
+    if (canvas.ticker.speed + to <= 0) return;
+    document.getElementById('input-pixi-ticker-speed').value = canvas.ticker.speed += to;
+  }
+
+  exports.canvas = canvas;
+
+  exports.getInputValue = getInputValue;
+  exports.setInputValue = setInputValue;
+  exports.applyUpdatedInputValue = applyUpdatedInputValue;
+  exports.start = start;
+  exports.stop = stop;
+  exports.linkTo = linkTo;
+  exports.pixiTickerSpeed = pixiTickerSpeed;
+  exports.defaultValues = defaultValues;
+
+  return exports;
+})({});
 
 const shGraph = new Graph('S', 'h');
-const tvyGraph = new Graph('t', 'Vy');
+const vtGraph = new Graph('t', 'V');
 const tvxGraph = new Graph('t', 'Vx');
+const tvyGraph = new Graph('t', 'Vy');
 const g = new Vector(0, -9.81);
-const p = new Point();
-
-function start() {
-  const startButton = document.getElementById('start-button');
-  const stopButton = document.getElementById('stop-button');
-  startButton.style.display = 'none';
-  stopButton.style.display = 'inline-block';
-  app.start();
-  if (!p.moving) {
-    Graph.list.forEach(graph => graph.startProject());
-    p.on('stop', () => {
-      Graph.list.forEach(graph => graph.endProject());
-      startButton.style.display = 'inline-block';
-      stopButton.style.display = 'none';
-    });
-    p.start();
+const p = new Physics(
+  app.getInputValue('x'),
+  app.getInputValue('y'),
+  {
+    velocityModul: app.getInputValue('v'),
+    radianThrowingAngle: app.getInputValue('throwing-angle') * Math.PI / 180,
+    vmax: app.getInputValue('vmax'),
+    wind: app.getInputValue('wind')
   }
-}
-
-function stop() {
-  document.getElementById('start-button').style.display = 'inline-block';
-  document.getElementById('stop-button').style.display = 'none';
-  app.stop();
-}
-
-function compareWithNull(number) {
-  return -Uncertainty <= number && number <= Uncertainty;
-}
-
-function defaultValues() {
-  app.setInputValue('x', 0);
-  app.applyUpdatedInputValue('x');
-  app.setInputValue('y', 0);
-  app.applyUpdatedInputValue('y');
-  app.setInputValue('v', 12);
-  app.applyUpdatedInputValue('v');
-  app.setInputValue('throwing-angle', 45);
-  app.applyUpdatedInputValue('throwing-angle');
-  app.setInputValue('wind', 0);
-  app.applyUpdatedInputValue('wind');
-}
+);
+app.linkTo(p);
